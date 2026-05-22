@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园红黑榜 - 数据看板中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script>
+        const SUPABASE_URL = "https://xxnavrsgjevkcglhecwa.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_y_ECB7HzTdezrPhxDaS5Zw_cKSgAFbF";
+        window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
+    <script src="./guard.js"></script>
+    <style>
+        .red-gradient { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); }
+        .red-badge { background-color: #fee2e2; color: #991b1b; }
+        .black-badge { background-color: #f3f4f6; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <header class="bg-white shadow-sm sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+        <h1 class="text-xl font-bold text-gray-900">🏫 校园避坑红黑榜</h1>
+        <div class="flex items-center space-x-3">
+            <a href="profile.html" class="px-4 py-2 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-200">👤 个人中心</a>
+            <a href="post.html" class="px-4 py-2 red-gradient text-white text-sm font-medium rounded-lg shadow">📝 去发帖</a>
+            <button onclick="logoutFlow()" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200">退出登录</button>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto p-6">
+        <div class="bg-white p-6 rounded-2xl shadow-md mb-6 text-center">
+            <h2 class="text-2xl font-bold mb-2">查一查，校内店铺谁是红黑王？</h2>
+            <div class="flex max-w-xl mx-auto mt-4">
+                <input type="text" id="shop-search" placeholder="输入店铺名称，如：麦当劳、一食堂、瑞幸..." class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-l-xl outline-none focus:border-red-600">
+                <button onclick="triggerSearch()" class="px-6 red-gradient text-white font-medium rounded-r-xl">搜索</button>
+            </div>
+        </div>
+
+        <div id="stats-card" class="bg-white p-6 rounded-2xl shadow-md mb-6 hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="display-shop-name" class="text-xl font-bold text-gray-900">店铺</h3>
+                <div class="text-right">
+                    <span id="display-avg" class="text-3xl font-black text-red-600">0.0</span> <span class="text-sm text-gray-500">分</span>
+                    <p class="text-xs text-gray-400">总计 <span id="display-total">0</span> 条实名热评</p>
+                </div>
+            </div>
+            <div id="histogram-bars" class="space-y-2">
+                </div>
+        </div>
+
+        <div id="posts-card" class="bg-white p-6 rounded-2xl shadow-md hidden">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">最新校友真实体验贴</h3>
+            <div id="posts-container" class="space-y-4"></div>
+        </div>
+    </main>
+
+    <script src="./api.js"></script>
+    <script src="./auth.js"></script>
+    <script>
+        async function logoutFlow() {
+            if(confirm('确认退出登录？')) {
+                await signOut();
+                window.location.href = 'login.html';
+            }
+        }
+
+        async function triggerSearch() {
+            const keyword = document.getElementById('shop-search').value.trim();
+            if(!keyword) return alert('请输入店铺名字！');
+
+            try {
+                // 1. 联网查询你的五星直方图聚合引擎
+                const stats = await fetchShopStats(keyword);
+                document.getElementById('display-shop-name').textContent = `📊 ${stats.shop_name} 评分大透视`;
+                document.getElementById('display-avg').textContent = stats.avg_rating.toFixed(1);
+                document.getElementById('display-total').textContent = stats.total_reviews;
+
+                const barsContainer = document.getElementById('histogram-bars');
+                barsContainer.innerHTML = '';
+                
+                const stars = ['five_star', 'four_star', 'three_star', 'two_star', 'one_star'];
+                const starLabels = ['5 星 好评', '4 星 不错', '3 星 一般', '2 星 踩雷', '1 星 剧毒'];
+                
+                stars.forEach((key, idx) => {
+                    const count = stats.histogram[key];
+                    const percent = stats.total_reviews > 0 ? (count / stats.total_reviews) * 100 : 0;
+                    barsContainer.innerHTML += `
+                        <div class="flex items-center space-x-3 text-sm">
+                            <span class="w-16 text-gray-600 font-medium">${starLabels[idx]}</span>
+                            <div class="flex-1 bg-gray-100 h-3 rounded-full overflow-hidden">
+                                <div class="bg-red-600 h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+                            </div>
+                            <span class="w-12 text-right font-bold text-gray-700">${count} 帖</span>
+                        </div>`;
+                });
+                document.getElementById('stats-card').classList.remove('hidden');
+
+                // 2. 联网拉取详细评论流水列表
+                const postsResult = await fetchShopPosts(keyword);
+                const container = document.getElementById('posts-container');
+                container.innerHTML = '';
+
+                if(postsResult.data.length === 0) {
+                    container.innerHTML = '<p class="text-gray-400 text-center py-4">该店暂无评价，快去抢首发！</p>';
+                } else {
+                    postsResult.data.forEach(post => {
+                        const badge = post.type === 'RED' ? 'red-badge' : 'black-badge';
+                        const badgeText = post.type === 'RED' ? '🔴 红榜种草' : '⚫️ 黑榜避坑';
+                        container.innerHTML += `
+                            <div class="p-4 border border-gray-100 rounded-xl bg-gray-50">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-xs font-bold px-2 py-1 rounded ${badge}">${badgeText} | ${post.rating} 星</span>
+                                    <span class="text-xs text-gray-400">${new Date(post.created_at).toLocaleDateString()}</span>
+                                </div>
+                                <h4 class="font-bold text-gray-900">${post.title}</h4>
+                                p class="text-sm text-gray-600 mt-1">${post.content}</p>
+                                <div class="mt-2 flex justify-between items-center text-xs text-gray-400">
+                                    <span>标签: ${post.tags.join(', ') || '无'}</span>
+                                    <span class="font-medium text-gray-500">🙋‍♂️ 发布者: ${post.author_name}</span>
+                                </div>
+                            </div>`;
+                    });
+                }
+                document.getElementById('posts-card').classList.remove('hidden');
+            } catch(err) {
+                alert('数据加载异常: ' + err.message);
+            }
+        }
+    </script>
+</body>
+</html>

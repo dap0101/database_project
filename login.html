@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园红黑榜 - 实名认证中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script>
+        const SUPABASE_URL = "https://xxnavrsgjevkcglhecwa.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_y_ECB7HzTdezrPhxDaS5Zw_cKSgAFbF";
+        window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
+    <style>
+        .tab-active { border-bottom: 3px solid #dc2626; color: #dc2626; }
+        .tab-inactive { border-bottom: 3px solid transparent; color: #6b7280; }
+        .red-gradient { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden p-6">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">校园红黑榜</h1>
+            <p class="text-sm text-gray-500 mt-1">实名认证 · 真实评价</p>
+        </div>
+        
+        <div class="flex border-b border-gray-200 mb-4">
+            <button id="tab-login" onclick="switchTab('login')" class="flex-1 py-2 text-sm font-medium tab-active">账号登录</button>
+            <button id="tab-register" onclick="switchTab('register')" class="flex-1 py-2 text-sm font-medium tab-inactive">实名注册</button>
+        </div>
+
+        <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">校内邮箱</label>
+                <input type="email" id="login-email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder="your@email.com">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">密码</label>
+                <input type="password" id="login-password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder="••••••••">
+            </div>
+            <button type="submit" class="w-full py-3 red-gradient text-white font-medium rounded-lg shadow-md">安全登录</button>
+        </form>
+
+        <form id="form-register" onsubmit="handleRegister(event)" class="space-y-3 hidden max-h-[450px] overflow-y-auto pr-1">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">邮箱 *</label>
+                <input type="email" id="reg-email" required class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">密码 * (至少6位)</label>
+                <input type="password" id="reg-password" required minlength="6" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">姓名 *</label>
+                    <input type="text" id="reg-student-name" required class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">学号 *</label>
+                    <input type="text" id="reg-student-id" required class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">大学全称 *</label>
+                <input type="text" id="reg-school-name" required placeholder="如：南方科技大学" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">联系手机/备用邮箱</label>
+                <input type="text" id="reg-phone" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
+            </div>
+            <button type="submit" class="w-full py-3 bg-gray-900 text-white font-medium rounded-lg shadow-md">提交实名注册</button>
+        </form>
+    </div>
+
+    <script src="./auth.js"></script>
+    <script>
+        function switchTab(tab) {
+            document.getElementById('tab-login').className = tab === 'login' ? 'flex-1 py-2 text-sm font-medium tab-active' : 'flex-1 py-2 text-sm font-medium tab-inactive';
+            document.getElementById('tab-register').className = tab === 'register' ? 'flex-1 py-2 text-sm font-medium tab-active' : 'flex-1 py-2 text-sm font-medium tab-inactive';
+            document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
+            document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                await signInWithEmail(email, password);
+                window.location.href = 'index.html';
+            } catch (error) {
+                alert('登录失败：' + error.message);
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const authData = { email: document.getElementById('reg-email').value, password: document.getElementById('reg-password').value };
+            const realNameData = {
+                school_name: document.getElementById('reg-school-name').value,
+                student_name: document.getElementById('reg-student-name').value,
+                student_id: document.getElementById('reg-student-id').value,
+                phone_or_email: document.getElementById('reg-phone').value
+            };
+            try {
+                await signUpWithRealName(authData, realNameData);
+                alert('注册成功！系统已自动绑定实名。现在可以去登录了。');
+                switchTab('login');
+            } catch (error) {
+                alert('注册失败：' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -27,8 +27,6 @@
 // <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 // 并在全局初始化:window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-const supabase = window.supabaseClient;
-
 // ============================================================
 // 错误处理工具函数
 // ============================================================
@@ -55,12 +53,16 @@ function wrapError(error, context) {
  *
  * @returns {Promise<{session: Object|null, user: Object|null}>} 会话信息
  */
+/**
+ * 会话状态检查
+ */
 async function checkSession() {
   try {
-    const { data: { session }, error } = await supabase.auth.getSession();
+    // 彻底抛弃 supabase，直接用 window.supabaseClient
+    const { data: { session }, error } = await window.supabaseClient.auth.getSession();
     if (error) throw error;
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
 
     return { session, user };
   } catch (error) {
@@ -117,29 +119,21 @@ async function fetchShopStats(shopName) {
   }
 
   try {
-    // =====================================================
-    // 策略 A: 优先查询预聚合视图 shop_rating_stats
-    // 该视图在 schema.sql 中已定义,预先聚合了所有店铺的评分数据
-    // =====================================================
-    const { data: viewData, error: viewError } = await supabase
+    // 策略 A: 优先查询预聚合视图，直接使用 window.supabaseClient
+    const { data: viewData, error: viewError } = await window.supabaseClient
       .from('shop_rating_stats')
       .select('*')
       .eq('shop_name', normalizedShopName)
       .single();
 
-    // 如果视图查询成功且返回数据,直接使用视图结果
     if (!viewError && viewData) {
       return formatStatsResponse(viewData, normalizedShopName, true);
     }
 
-    // =====================================================
-    // 策略 B: 视图查询失败或无数据,回退到实时聚合查询
-    // 直接在 posts 表上执行聚合统计
-    // =====================================================
     console.warn(`[fetchShopStats] 视图查询未返回数据,回退到实时聚合查询: ${normalizedShopName}`);
 
-    // 执行实时聚合查询
-    const { data: aggData, error: aggError } = await supabase
+    // 策略 B: 回退到实时聚合查询，直接使用 window.supabaseClient
+    const { data: aggData, error: aggError } = await window.supabaseClient
       .from('posts')
       .select('rating')
       .eq('shop_name', normalizedShopName)
@@ -218,7 +212,7 @@ function formatStatsResponse(rawData, shopName, fromView) {
       one_star: parseInt(rawData.one_star_count) || 0
     },
     // 原始数据(调试用,生产环境可移除)
-    raw_data: process.env.NODE_ENV === 'development' ? rawData : null,
+    raw_data: null,
     // 数据来源标记
     _meta: {
       from_view: fromView,
@@ -311,10 +305,8 @@ async function fetchShopPosts(shopName, options = {}) {
   const safeOrderDirection = orderDirection.toLowerCase() === 'asc' ? 'asc' : 'desc';
 
   try {
-    // =====================================================
-    // 步骤 1: 查询符合条件的帖子总数(用于分页)
-    // =====================================================
-    const { count: totalCount, error: countError } = await supabase
+    // 步骤 1: 查询符合条件的帖子总数，直接使用 window.supabaseClient
+    const { count: totalCount, error: countError } = await window.supabaseClient
       .from('posts')
       .select('*', { count: 'exact', head: true })
       .eq('shop_name', normalizedShopName)
@@ -322,10 +314,6 @@ async function fetchShopPosts(shopName, options = {}) {
 
     if (countError) throw countError;
 
-    // =====================================================
-    // 步骤 2: 查询帖子列表数据
-    // =====================================================
-    // 选择器字段:包含所有需要展示的字段
     const selectFields = `
       id,
       user_id,
@@ -340,7 +328,8 @@ async function fetchShopPosts(shopName, options = {}) {
       updated_at
     `;
 
-    const { data: posts, error: postsError } = await supabase
+    // 步骤 2: 查询帖子列表数据，直接使用 window.supabaseClient
+    const { data: posts, error: postsError } = await window.supabaseClient
       .from('posts')
       .select(selectFields)
       .eq('shop_name', normalizedShopName)
@@ -350,28 +339,18 @@ async function fetchShopPosts(shopName, options = {}) {
 
     if (postsError) throw postsError;
 
-    // =====================================================
-    // 步骤 3: 处理作者信息(匿名脱敏)
-    // =====================================================
-    // 收集所有需要查询 user_id(非匿名帖子)
+    // 收集所有需要查询 user_id
     const userIdsToFetch = [];
-    const userIdToPostsMap = new Map();
-
     for (const post of (posts || [])) {
       if (!post.is_anonymous && post.user_id) {
         userIdsToFetch.push(post.user_id);
-
-        if (!userIdToPostsMap.has(post.user_id)) {
-          userIdToPostsMap.set(post.user_id, []);
-        }
-        userIdToPostsMap.get(post.user_id).push(post);
       }
     }
 
-    // 批量查询用户信息
+    // 批量查询用户信息，直接使用 window.supabaseClient
     const userInfoMap = new Map();
     if (userIdsToFetch.length > 0) {
-      const { data: users, error: userError } = await supabase
+      const { data: users, error: userError } = await window.supabaseClient
         .from('users')
         .select('id, student_name')
         .in('id', userIdsToFetch);
@@ -382,7 +361,6 @@ async function fetchShopPosts(shopName, options = {}) {
         }
       }
     }
-
     // =====================================================
     // 步骤 4: 组装最终响应数据
     // =====================================================
@@ -508,6 +486,7 @@ async function fetchShopPosts(shopName, options = {}) {
  * });
  */
 async function createPost(postData) {
+  try {
   // =====================================================
   // 步骤 1: 严格参数校验
   // =====================================================
@@ -605,7 +584,7 @@ async function createPost(postData) {
   // 额外校验：检查用户是否已完成实名认证
   // 注意：此处的校验仅作为前端辅助，真正的权限控制由 RLS 策略执行
   try {
-    const { data: userInfo, error: userError } = await supabase
+    const { data: userInfo, error: userError } = await window.supabaseClient
       .from('users')
       .select('is_verified')
       .eq('id', currentUserId)
@@ -638,7 +617,214 @@ async function createPost(postData) {
   // =====================================================
   // 步骤 4: 执行数据库插入
   // =====================================================
-  const { data: insertedPost, error: insertError } = await supabase
+  const { data: insertedPost, error: insertError } = await window.supabaseClient
     .from('posts')
     .insert(insertData)
-    .select()`}]}`}
+    .select();
+
+  if (insertError) {
+    throw wrapError(insertError, 'createPost - 数据库插入失败');
+  }
+
+  if (!insertedPost || insertedPost.length === 0) {
+    throw new Error('[createPost] 帖子创建失败：数据库返回空结果');
+  }
+
+  return {
+    success: true,
+    data: insertedPost[0],
+    message: '帖子发布成功！'
+  };
+
+} catch (error) {
+  console.error('[createPost] 发帖失败:', error);
+  throw wrapError(error, 'createPost');
+}
+}
+
+// ============================================================
+// 功能 4: 获取当前登录用户的所有帖子（个人中心用）
+// ============================================================
+
+/**
+ * 获取当前登录用户的所有帖子列表
+ *
+ * @param {Object} options - 可选配置参数
+ * @param {number} options.limit - 返回最大数量(默认 50)
+ * @param {number} options.offset - 分页偏移量(默认 0)
+ * @returns {Promise<Object>} 用户帖子列表响应对象
+ */
+async function fetchUserPosts(options = {}) {
+  try {
+    // 获取当前会话
+    const { session, user } = await checkSession();
+    if (!session || !user) {
+      throw new Error('[fetchUserPosts] 用户未登录');
+    }
+
+    const { limit = 50, offset = 0 } = options;
+    const safeLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
+    const safeOffset = Math.max(parseInt(offset) || 0, 0);
+
+    const { data: posts, error, count } = await window.supabaseClient
+      .from('posts')
+      .select('*', { count: 'exact' })
+      .eq('user_id', user.id)
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false })
+      .range(safeOffset, safeOffset + safeLimit - 1);
+
+    if (error) throw error;
+
+    return {
+      data: posts || [],
+      pagination: {
+        total: count || 0,
+        limit: safeLimit,
+        offset: safeOffset,
+        hasMore: (safeOffset + safeLimit) < (count || 0)
+      },
+      meta: {
+        fetched_at: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    console.error('[fetchUserPosts] 查询失败:', error);
+    throw wrapError(error, 'fetchUserPosts');
+  }
+}
+
+// ============================================================
+// 功能 5: 软删除帖子（将 is_deleted 设为 true）
+// ============================================================
+
+/**
+ * 软删除指定帖子（仅限帖子作者或管理员）
+ *
+ * @param {number} postId - 要删除的帖子ID
+ * @returns {Promise<Object>} 删除结果
+ */
+async function deletePost(postId) {
+  try {
+    if (!postId || typeof postId !== 'number') {
+      throw new Error('[deletePost] 无效的帖子ID');
+    }
+
+    // 获取当前会话验证权限
+    const { session, user } = await checkSession();
+    if (!session || !user) {
+      throw new Error('[deletePost] 用户未登录，无法删除帖子');
+    }
+
+    // 先查询帖子确认作者身份
+    const { data: post, error: fetchError } = await window.supabaseClient
+      .from('posts')
+      .select('user_id')
+      .eq('id', postId)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!post) throw new Error('[deletePost] 帖子不存在');
+
+    // 权限校验：只能删除自己的帖子
+    if (post.user_id !== user.id) {
+      throw new Error('[deletePost] 无权删除：只能删除自己发布的帖子');
+    }
+
+    // 执行软删除
+    const { error: updateError } = await window.supabaseClient
+      .from('posts')
+      .update({ is_deleted: true, updated_at: new Date().toISOString() })
+      .eq('id', postId);
+
+    if (updateError) throw updateError;
+
+    return {
+      success: true,
+      message: '帖子删除成功',
+      deleted_post_id: postId
+    };
+  } catch (error) {
+    console.error('[deletePost] 删除失败:', error);
+    throw wrapError(error, 'deletePost');
+  }
+}
+
+// ============================================================
+// 功能 6: 更新帖子内容（U - Update）
+// ============================================================
+
+/**
+ * 更新指定帖子的内容（仅限帖子作者）
+ *
+ * @param {number} postId - 要更新的帖子ID
+ * @param {Object} updateData - 更新的数据对象
+ * @returns {Promise<Object>} 更新结果
+ */
+async function updatePost(postId, updateData) {
+  try {
+    if (!postId || typeof postId !== 'number') {
+      throw new Error('[updatePost] 无效的帖子ID');
+    }
+    if (!updateData || typeof updateData !== 'object') {
+      throw new Error('[updatePost] 更新数据不能为空');
+    }
+
+    // 获取当前会话
+    const { session, user } = await checkSession();
+    if (!session || !user) {
+      throw new Error('[updatePost] 用户未登录');
+    }
+
+    // 查询帖子并验证作者身份
+    const { data: post, error: fetchError } = await window.supabaseClient
+      .from('posts')
+      .select('user_id')
+      .eq('id', postId)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!post) throw new Error('[updatePost] 帖子不存在');
+    if (post.user_id !== user.id) {
+      throw new Error('[updatePost] 无权更新：只能修改自己发布的帖子');
+    }
+
+    // 构建允许的更新字段（白名单机制）
+    const allowedFields = ['title', 'content', 'rating', 'type', 'tags', 'is_anonymous'];
+    const sanitizedData = {};
+    
+    for (const field of allowedFields) {
+      if (updateData[field] !== undefined) {
+        sanitizedData[field] = updateData[field];
+      }
+    }
+
+    // 自动更新 updated_at 时间戳
+    sanitizedData.updated_at = new Date().toISOString();
+
+    // 执行更新
+    const { data: updatedPost, error: updateError } = await window.supabaseClient
+      .from('posts')
+      .update(sanitizedData)
+      .eq('id', postId)
+      .select();
+
+    if (updateError) throw updateError;
+
+    return {
+      success: true,
+      data: updatedPost[0],
+      message: '帖子更新成功'
+    };
+  } catch (error) {
+    console.error('[updatePost] 更新失败:', error);
+    throw wrapError(error, 'updatePost');
+  }
+}
+
+window.fetchShopStats = fetchShopStats;
+window.fetchShopPosts = fetchShopPosts;
+window.createPost = createPost;
+window.fetchUserPosts = fetchUserPosts;
+window.deletePost = deletePost;
+window.updatePost = updatePost;
