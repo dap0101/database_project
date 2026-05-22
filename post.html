@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园红黑榜 - 撰写校内真实点评</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script>
+        const SUPABASE_URL = "https://xxnavrsgjevkcglhecwa.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_y_ECB7HzTdezrPhxDaS5Zw_cKSgAFbF";
+        window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
+    <script src="./guard.js"></script>
+    <style>.red-gradient { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); }</style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-xl bg-white p-6 rounded-2xl shadow-xl">
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h2 class="text-xl font-bold text-gray-900">📝 发布校内消费实名红黑贴</h2>
+            <a href="index.html" class="text-sm text-gray-400 hover:text-gray-600">取消返回</a>
+        </div>
+
+        <form onsubmit="handlePostSubmit(event)" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">标准化店铺名称 *</label>
+                    <input type="text" id="post-shop" required placeholder="例如：麦当劳（荔园店）" class="w-full mt-1 px-3 py-2 border rounded-lg outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">红黑榜属性 *</label>
+                    <select id="post-type" class="w-full mt-1 px-3 py-2 border rounded-lg outline-none text-sm bg-white">
+                        <option value="RED">🔴 红榜（强烈推荐/种草）</option>
+                        <option value="BLACK">⚫️ 黑榜（避坑吐槽/避雷）</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">评分星级 *</label>
+                    <select id="post-rating" class="w-full mt-1 px-3 py-2 border rounded-lg outline-none text-sm bg-white">
+                        <option value="5">⭐⭐⭐⭐⭐ 5星 极力安利</option>
+                        <option value="4">⭐⭐⭐⭐ 4星 值得一试</option>
+                        <option value="3">⭐⭐⭐ 3星 水平一般</option>
+                        <option value="2">⭐⭐ 2星 体验较差</option>
+                        <option value="1">⭐ 1星 恶劣至极</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">分类标签 (英文逗号隔开)</label>
+                    <input type="text" id="post-tags" placeholder="美食, 性价比, 服务差" class="w-full mt-1 px-3 py-2 border rounded-lg outline-none text-sm">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">贴子标题 *</label>
+                <input type="text" id="post-title" required placeholder="一句话概括你的核心体验..." class="w-full mt-1 px-3 py-2 border rounded-lg outline-none text-sm">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">详细经历正文描述 *</label>
+                <textarea id="post-content" required rows="4" placeholder="请真实详细地写下你在该店的消费体验，严禁虚假水军造谣..." class="w-full mt-1 px-3 py-2 border rounded-lg outline-none text-sm"></textarea>
+            </div>
+
+            <div class="flex items-center space-x-2 bg-gray-50 p-3 rounded-lg">
+                <input type="checkbox" id="post-anonymous" class="w-4 h-4 text-red-600 border-gray-300 rounded">
+                <label for="post-anonymous" class="text-xs text-gray-500 font-medium selection:bg-transparent">
+                    🔒 我要匿名发布（勾选后前台将隐藏你的姓名学号，显示为“某不愿透露姓名的校友”）
+                </label>
+            </div>
+
+            <button type="submit" class="w-full py-3 red-gradient text-white font-medium rounded-lg shadow-md">发布贴子并同步新加坡云端</button>
+        </form>
+    </div>
+
+    <script src="./api.js"></script>
+    <script>
+        async function handlePostSubmit(e) {
+            e.preventDefault();
+            const tagsInput = document.getElementById('post-tags').value.trim();
+            const postData = {
+                shop_name: document.getElementById('post-shop').value.trim(),
+                type: document.getElementById('post-type').value,
+                rating: parseInt(document.getElementById('post-rating').value),
+                title: document.getElementById('post-title').value.trim(),
+                content: document.getElementById('post-content').value.trim(),
+                tags: tagsInput ? tagsInput.split(',').map(t => t.trim()) : [],
+                is_anonymous: document.getElementById('post-anonymous').checked
+            };
+
+            try {
+                // 强力调用 api.js 封装的安全发帖 SDK
+                await createPost(postData);
+                alert('🎉 恭喜！发帖流水成功打通 RLS 权限判定，成功入库！');
+                window.location.href = 'index.html';
+            } catch (err) {
+                alert('发帖失败：' + err.message);
+            }
+        }
+    </script>
+</body>
+</html>

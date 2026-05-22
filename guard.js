@@ -106,7 +106,7 @@
     console.log('[Guard] 当前页面需要认证:', getCurrentPage());
 
     // 步骤 2: 检查 Supabase 客户端是否可用
-    if (typeof supabaseClient === 'undefined') {
+    if (typeof window.supabaseClient === 'undefined') {
       console.error('[Guard] 错误: supabaseClient 未定义');
       showSecurityAlert('安全警报：系统初始化失败，请刷新页面重试！');
       return;
@@ -117,7 +117,8 @@
     try {
       console.log('[Guard] 正在获取当前会话...');
       const { data: { session: currentSession }, error: sessionError } = 
-        await supabaseClient.auth.getSession();
+        await window.supabaseClient.auth.getSession();
+  
 
       if (sessionError) {
         throw new Error(`获取会话失败: ${sessionError.message}`);
@@ -199,11 +200,12 @@
     // 手动触发守卫检查
     check: executeSecurityGuard,
     // 获取当前会话
-    getSession: async function() {
-      if (typeof supabaseClient === 'undefined') return null;
-      const { data: { session } } = await supabaseClient.auth.getSession();
+   getSession: async function() {
+      if (typeof window.supabaseClient === 'undefined') return null;
+      const { data: { session } } = await window.supabaseClient.auth.getSession();
       return session;
     },
+   
     // 检查是否已登录
     isLoggedIn: async function() {
       const session = await this.getSession();
