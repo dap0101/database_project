@@ -100,6 +100,7 @@
             background: #FFF0F0;
         }
     </style>
+<base target="_blank">
 </head>
 <body class="min-h-screen" style="background: var(--bg-light);">
     <!-- 顶部导航 -->
@@ -237,6 +238,7 @@
                                 </div>
                                 <div class="flex items-center space-x-3">
                                     <span class="text-xs" style="color: var(--text-sub);">${new Date(post.created_at).toLocaleDateString()}</span>
+                                    <a href="post_edit.html?id=${post.id}" class="text-xs font-medium px-2 py-1 rounded hover:bg-gray-100" style="color: var(--primary);">编辑</a>
                                     <button onclick="handleDeletePost(${post.id})" class="delete-btn text-xs font-medium">删除</button>
                                 </div>
                             </div>
