@@ -12,71 +12,178 @@
         window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     </script>
     <style>
-        .tab-active { border-bottom: 3px solid #dc2626; color: #dc2626; }
-        .tab-inactive { border-bottom: 3px solid transparent; color: #6b7280; }
-        .red-gradient { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); }
+        :root {
+            --primary: #4A90E2;
+            --primary-dark: #357ABD;
+            --accent: #FF9F43;
+            --bg-light: #F5F7FA;
+            --text-main: #2D3748;
+            --text-sub: #8A919F;
+            --white: #FFFFFF;
+            --border-light: #E2E8F0;
+        }
+
+        body {
+            background: var(--bg-light);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .login-card {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .input-field {
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 14px;
+            color: var(--text-main);
+            background: var(--white);
+            transition: all 0.2s ease;
+            outline: none;
+            width: 100%;
+        }
+        .input-field:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+        .input-field::placeholder {
+            color: var(--text-sub);
+        }
+
+        .primary-btn {
+            background: var(--primary);
+            color: white;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+        .primary-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 0;
+            font-size: 14px;
+            font-weight: 500;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-sub);
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            font-weight: 600;
+        }
+        .tab-btn:hover {
+            color: var(--text-main);
+        }
+
+        .link-text {
+            color: var(--text-sub);
+            font-size: 13px;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .link-text:hover {
+            color: var(--primary);
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .required-mark {
+            color: var(--primary);
+        }
     </style>
+<base target="_blank">
 </head>
-<body class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden p-6">
-        <div class="text-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-900">校园红黑榜</h1>
-            <p class="text-sm text-gray-500 mt-1">实名认证 · 真实评价</p>
-        </div>
-        
-        <div class="flex border-b border-gray-200 mb-4">
-            <button id="tab-login" onclick="switchTab('login')" class="flex-1 py-2 text-sm font-medium tab-active">账号登录</button>
-            <button id="tab-register" onclick="switchTab('register')" class="flex-1 py-2 text-sm font-medium tab-inactive">实名注册</button>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="login-card p-8">
+        <!-- 标题区 -->
+        <div class="text-center mb-8">
+            <h1 class="text-xl font-semibold" style="color: var(--text-main);">用户登录</h1>
+            <p class="text-sm mt-1" style="color: var(--text-sub);">请输入账号密码登录</p>
         </div>
 
+        <!-- Tab 切换 -->
+        <div class="flex mb-6">
+            <button id="tab-login" onclick="switchTab('login')" class="tab-btn active">账号登录</button>
+            <button id="tab-register" onclick="switchTab('register')" class="tab-btn">实名注册</button>
+        </div>
+
+        <!-- 登录表单 -->
         <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700">校内邮箱</label>
-                <input type="email" id="login-email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder="your@email.com">
+                <label class="form-label">校内邮箱</label>
+                <input type="email" id="login-email" required 
+                    class="input-field" 
+                    placeholder="your@email.com">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">密码</label>
-                <input type="password" id="login-password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder="••••••••">
+                <label class="form-label">密码</label>
+                <input type="password" id="login-password" required 
+                    class="input-field" 
+                    placeholder="请输入密码">
             </div>
-            <button type="submit" class="w-full py-3 red-gradient text-white font-medium rounded-lg shadow-md">安全登录</button>
+            <button type="submit" class="primary-btn mt-2">安全登录</button>
         </form>
 
-        <form id="form-register" onsubmit="handleRegister(event)" class="space-y-3 hidden max-h-[450px] overflow-y-auto pr-1">
+        <!-- 注册表单 -->
+        <form id="form-register" onsubmit="handleRegister(event)" class="space-y-3 hidden max-h-[400px] overflow-y-auto pr-1">
             <div>
-                <label class="block text-sm font-medium text-gray-700">邮箱 *</label>
-                <input type="email" id="reg-email" required class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
+                <label class="form-label">邮箱 <span class="required-mark">*</span></label>
+                <input type="email" id="reg-email" required class="input-field">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">密码 * (至少6位)</label>
-                <input type="password" id="reg-password" required minlength="6" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
+                <label class="form-label">密码 <span class="required-mark">*</span> (至少6位)</label>
+                <input type="password" id="reg-password" required minlength="6" class="input-field">
             </div>
-            <div class="grid grid-cols-2 gap-2">
+            <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">姓名 *</label>
-                    <input type="text" id="reg-student-name" required class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
+                    <label class="form-label">姓名 <span class="required-mark">*</span></label>
+                    <input type="text" id="reg-student-name" required class="input-field">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">学号 *</label>
-                    <input type="text" id="reg-student-id" required class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
+                    <label class="form-label">学号 <span class="required-mark">*</span></label>
+                    <input type="text" id="reg-student-id" required class="input-field">
                 </div>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">大学全称 *</label>
-                <input type="text" id="reg-school-name" required placeholder="如：南方科技大学" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
+                <label class="form-label">大学全称 <span class="required-mark">*</span></label>
+                <input type="text" id="reg-school-name" required placeholder="如：南方科技大学" class="input-field">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">联系手机/备用邮箱</label>
-                <input type="text" id="reg-phone" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
+                <label class="form-label">联系手机/备用邮箱</label>
+                <input type="text" id="reg-phone" class="input-field">
             </div>
-            <button type="submit" class="w-full py-3 bg-gray-900 text-white font-medium rounded-lg shadow-md">提交实名注册</button>
+            <button type="submit" class="primary-btn mt-2">提交实名注册</button>
         </form>
     </div>
 
     <script src="./auth.js"></script>
     <script>
         function switchTab(tab) {
-            document.getElementById('tab-login').className = tab === 'login' ? 'flex-1 py-2 text-sm font-medium tab-active' : 'flex-1 py-2 text-sm font-medium tab-inactive';
-            document.getElementById('tab-register').className = tab === 'register' ? 'flex-1 py-2 text-sm font-medium tab-active' : 'flex-1 py-2 text-sm font-medium tab-inactive';
+            document.getElementById('tab-login').className = tab === 'login' ? 'tab-btn active' : 'tab-btn';
+            document.getElementById('tab-register').className = tab === 'register' ? 'tab-btn active' : 'tab-btn';
             document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
             document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
         }

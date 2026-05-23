@@ -142,6 +142,7 @@
         .stat-item:nth-child(2) { animation-delay: 0.15s; }
         .stat-item:nth-child(3) { animation-delay: 0.3s; }
     </style>
+<base target="_blank">
 </head>
 <body class="min-h-screen" style="background: var(--bg-light);">
     <!-- 顶部导航 -->
@@ -564,6 +565,53 @@
                     </div>
                 </div>`;
         }
+
+
+    // ========== 问候语模块（追加，不影响已有代码）==========
+    (function initGreeting() {
+        const hour = new Date().getHours();
+        let greeting = '晚上好';
+        if (hour >= 5 && hour < 12) greeting = '上午好';
+        else if (hour >= 12 && hour < 18) greeting = '下午好';
+
+        async function showGreeting() {
+            try {
+                const { data: { user } } = await window.supabaseClient.auth.getUser();
+                let userName = '同学';
+
+                if (user) {
+                    const { data: userInfo } = await window.supabaseClient
+                        .from('users')
+                        .select('student_name')
+                        .eq('id', user.id)
+                        .single();
+
+                    userName = userInfo?.student_name || user.email?.split('@')[0] || '同学';
+                }
+
+                const greetingEl = document.createElement('span');
+                greetingEl.id = 'user-greeting';
+                greetingEl.innerHTML = greeting + '，<span style="color:#4A90E2;font-weight:700;">' + userName + '</span>';
+                greetingEl.style.cssText = 'font-size:15px;color:#2D3748;font-weight:600;margin-right:12px;';
+
+                const nav = document.querySelector('header .flex.items-center.space-x-3');
+                if (nav) {
+                    const profileLink = nav.querySelector('a[href="profile.html"]');
+                    if (profileLink) {
+                        nav.insertBefore(greetingEl, profileLink);
+                    }
+                }
+            } catch (err) {
+                console.log('问候语加载失败:', err);
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', showGreeting);
+        } else {
+            showGreeting();
+        }
+    })();
     </script>
 </body>
 </html>
