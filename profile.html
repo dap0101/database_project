@@ -13,49 +13,143 @@
     </script>
     <script src="./guard.js"></script>
     <style>
-        .red-gradient { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); }
-        .red-badge { background-color: #fee2e2; color: #991b1b; }
-        .black-badge { background-color: #f3f4f6; color: #1f2937; }
+        :root {
+            --primary: #4A90E2;
+            --primary-dark: #357ABD;
+            --accent: #FF9F43;
+            --bg-light: #F5F7FA;
+            --text-main: #2D3748;
+            --text-sub: #8A919F;
+            --white: #FFFFFF;
+            --red-soft: #F56565;
+            --green-soft: #48BB78;
+        }
+        
+        .primary-btn { 
+            background: var(--primary); 
+            transition: all 0.2s ease;
+        }
+        .primary-btn:hover { 
+            background: var(--primary-dark); 
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+        }
+        
+        .card {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .shop-item {
+            transition: all 0.25s ease;
+            border-radius: 10px;
+        }
+        .shop-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+            background: #FAFBFC;
+        }
+        
+        .star-filled { color: var(--accent); }
+        .star-empty { color: #E2E8F0; }
+        
+        .red-badge { 
+            background-color: #FFF0F0; 
+            color: #C53030; 
+        }
+        .black-badge { 
+            background-color: #2D3748; 
+            color: #F7FAFC; 
+        }
+        
+        .avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+            border: 3px solid #E2E8F0;
+        }
+        
+        .verified-badge {
+            background: #F0FFF4;
+            color: var(--green-soft);
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .delete-btn {
+            color: var(--text-sub);
+            transition: all 0.2s ease;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        .delete-btn:hover {
+            color: var(--red-soft);
+            background: #FFF0F0;
+        }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="min-h-screen" style="background: var(--bg-light);">
     <!-- 顶部导航 -->
     <header class="bg-white shadow-sm sticky top-0 z-50 px-6 py-4">
-        <div class="max-w-4xl mx-auto flex items-center justify-between">
+        <div class="max-w-3xl mx-auto flex items-center justify-between">
             <div class="flex items-center space-x-4">
-                <a href="index.html" class="text-gray-600 hover:text-gray-900">← 返回首页</a>
-                <h1 class="text-xl font-bold text-gray-900">👤 个人中心</h1>
+                <a href="index.html" class="text-sm font-medium transition hover:text-[var(--primary)]" style="color: var(--text-sub);">
+                    ← 返回首页
+                </a>
+                <h1 class="text-xl font-semibold" style="color: var(--text-main);">👤 个人中心</h1>
             </div>
-            <button onclick="logoutFlow()" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200">退出登录</button>
+            <button onclick="logoutFlow()" class="px-4 py-2 rounded-lg text-sm font-medium transition hover:bg-gray-100" style="color: var(--text-sub);">
+                退出登录
+            </button>
         </div>
     </header>
 
-    <main class="max-w-4xl mx-auto p-6 space-y-6">
+    <main class="max-w-3xl mx-auto p-6 space-y-6">
         <!-- 用户信息卡片 -->
-        <div class="bg-white p-6 rounded-2xl shadow-md">
+        <div class="card p-6">
             <div class="flex items-center space-x-4">
-                <div class="w-16 h-16 bg-gradient-to-br from-red-500 to-red-700 rounded-full flex items-center justify-center text-white text-2xl font-bold" id="user-avatar">
-                    👤
-                </div>
-                <div>
-                    <h2 class="text-xl font-bold text-gray-900" id="user-name">加载中...</h2>
-                    <p class="text-sm text-gray-500" id="user-email">加载中...</p>
-                    <div class="flex items-center space-x-2 mt-2">
-                        <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">✓ 已认证</span>
-                        <span class="text-xs text-gray-400" id="post-count">帖子: 0</span>
+                <div class="avatar" id="user-avatar">👤</div>
+                <div class="flex-1">
+                    <h2 class="text-lg font-medium mb-1" style="color: var(--text-main);" id="user-name">加载中...</h2>
+                    <p class="text-sm mb-2" style="color: var(--text-sub);" id="user-email">加载中...</p>
+                    <div class="flex items-center space-x-3">
+                        <span class="verified-badge">
+                            <span>✓</span>
+                            <span>已认证</span>
+                        </span>
+                        <span class="text-sm" style="color: var(--text-sub);" id="post-count">帖子: 0</span>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- 我的帖子列表 -->
-        <div class="bg-white p-6 rounded-2xl shadow-md">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-gray-900">📋 我发布的帖子</h3>
-                <a href="post.html" class="px-4 py-2 red-gradient text-white text-sm font-medium rounded-lg">+ 发布新帖</a>
+        <div class="card p-6">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-xl font-semibold flex items-center" style="color: var(--text-main);">
+                    <span class="text-xl mr-2">📋</span>
+                    我发布的帖子
+                </h3>
+                <a href="post.html" class="px-4 py-2 primary-btn text-white text-sm font-medium rounded-lg flex items-center gap-1">
+                    <span>+</span>
+                    <span>发布新帖</span>
+                </a>
             </div>
-            <div id="my-posts-container" class="space-y-4">
-                <p class="text-gray-400 text-center py-8">加载中...</p>
+            <div id="my-posts-container" class="space-y-3">
+                <p class="text-sm text-center py-8" style="color: var(--text-sub);">加载中...</p>
             </div>
         </div>
     </main>
@@ -111,39 +205,59 @@
 
                 if (posts.length === 0) {
                     container.innerHTML = `
-                        <div class="text-center py-8 text-gray-400">
-                            <p>你还没有发布过帖子</p>
-                            <a href="post.html" class="inline-block mt-2 text-red-600 hover:underline">去发布第一篇 →</a>
+                        <div class="text-center py-8" style="color: var(--text-sub);">
+                            <p class="text-sm mb-2">你还没有发布过帖子</p>
+                            <a href="post.html" class="inline-block text-sm font-medium hover:underline" style="color: var(--primary);">去发布第一篇 →</a>
                         </div>`;
                     return;
                 }
 
                 container.innerHTML = posts.map(post => {
                     const badge = post.type === 'RED' ? 'red-badge' : 'black-badge';
-                    const badgeText = post.type === 'RED' ? '🔴 红榜' : '⚫️ 黑榜';
+                    const badgeText = post.type === 'RED' ? '红榜' : '黑榜';
+                    const badgeIcon = post.type === 'RED' ? '🔴' : '⚫️';
+                    
+                    // 星级渲染
+                    const fullStars = post.rating;
+                    let starsHtml = '';
+                    for (let i = 0; i < 5; i++) {
+                        if (i < fullStars) {
+                            starsHtml += '<span class="star-filled">★</span>';
+                        } else {
+                            starsHtml += '<span class="star-empty">★</span>';
+                        }
+                    }
+                    
                     return `
-                        <div class="p-4 border border-gray-100 rounded-xl bg-gray-50 hover:shadow-md transition-shadow">
-                            <div class="flex justify-between items-start mb-2">
+                        <div class="shop-item p-4 bg-gray-50 border border-gray-100">
+                            <div class="flex justify-between items-start mb-3">
                                 <div class="flex items-center space-x-2">
-                                    <span class="text-xs font-bold px-2 py-1 rounded ${badge}">${badgeText}</span>
-                                    <span class="text-xs text-gray-500">${post.rating} 星</span>
+                                    <span class="text-xs font-bold px-2.5 py-1 rounded-md ${badge}">${badgeIcon} ${badgeText}</span>
+                                    <span class="text-xs font-medium" style="color: var(--accent);">${starsHtml}</span>
                                 </div>
-                                <div class="flex items-center space-x-2">
-                                    <span class="text-xs text-gray-400">${new Date(post.created_at).toLocaleDateString()}</span>
-                                    <button onclick="handleDeletePost(${post.id})" class="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50">删除</button>
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-xs" style="color: var(--text-sub);">${new Date(post.created_at).toLocaleDateString()}</span>
+                                    <button onclick="handleDeletePost(${post.id})" class="delete-btn text-xs font-medium">删除</button>
                                 </div>
                             </div>
-                            <h4 class="font-bold text-gray-900 mb-1">${post.title}</h4>
-                            <p class="text-sm text-gray-600 line-clamp-2">${post.content}</p>
-                            <div class="mt-2 text-xs text-gray-400">
-                                店铺: ${post.shop_name} | 标签: ${(post.tags || []).join(', ') || '无'}
+                            <h4 class="font-medium text-base mb-1" style="color: var(--text-main);">${post.title}</h4>
+                            <p class="text-sm line-clamp-2 mb-2" style="color: var(--text-sub);">${post.content}</p>
+                            <div class="flex items-center justify-between text-xs" style="color: var(--text-sub);">
+                                <span>店铺: ${post.shop_name}</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold" style="color: var(--text-sub);">标签</span>
+                                    ${post.tags.length > 0 
+                                        ? post.tags.map(tag => `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-medium" style="background: #EBF4FF; color: var(--primary); border: 1px solid #BEE3F8;">${tag}</span>`).join('')
+                                        : '<span class="text-[10px]" style="color: var(--text-sub);">无</span>'
+                                    }
+                                </div>
                             </div>
                         </div>`;
                 }).join('');
 
             } catch (error) {
                 console.error('加载帖子失败:', error);
-                container.innerHTML = `<p class="text-red-400 text-center py-4">加载帖子失败: ${error.message}</p>`;
+                container.innerHTML = `<p class="text-sm text-center py-4" style="color: var(--red-soft);">加载帖子失败: ${error.message}</p>`;
             }
         }
 
