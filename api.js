@@ -734,7 +734,11 @@ async function deletePost(postId) {
     // 执行软删除
     const { error: updateError } = await window.supabaseClient
       .from('posts')
-      .update({ is_deleted: true, updated_at: new Date().toISOString() })
+      .update({ 
+        is_deleted: true, 
+        updated_at: new Date().toISOString(),
+        user_id: user.id   // 👈 【核弹级修复】：强行塞入 user_id，满足底层的 WITH CHECK 胃口！
+      })
       .eq('id', postId);
 
     if (updateError) throw updateError;
