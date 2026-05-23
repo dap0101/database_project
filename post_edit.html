@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园红黑榜 - 编辑帖子</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script>
+        const SUPABASE_URL = "https://xxnavrsgjevkcglhecwa.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_y_ECB7HzTdezrPhxDaS5Zw_cKSgAFbF";
+        window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
+    <script src="./guard.js"></script>
+    <style>
+        /* ========== 全局固定色号 ========== */
+        :root {
+            --primary: #4A90E2;
+            --primary-dark: #357ABD;
+            --accent: #FF9F43;
+            --black-red: #F56565;
+            --bg-light: #F5F7FA;
+            --white: #FFFFFF;
+            --text-main: #2D3748;
+            --text-sub: #8A919F;
+            --border-light: #E2E8F0;
+        }
+
+        body {
+            background: var(--bg-light);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* ========== 1. 顶部「编辑模式」栏 ========== */
+        .edit-header {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        .edit-badge {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .edit-subtitle {
+            font-size: 14px;
+            color: var(--text-sub);
+        }
+        .cancel-link {
+            font-size: 14px;
+            color: var(--text-sub);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .cancel-link:hover {
+            color: var(--text-main);
+        }
+
+        /* ========== 2. 原帖信息提示条 ========== */
+        .meta-info {
+            font-size: 14px;
+            color: var(--text-sub);
+            background: var(--bg-light);
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+
+        /* ========== 表单卡片 ========== */
+        .form-card {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        /* ========== 3. 红黑榜标签按钮 ========== */
+        .type-btn {
+            transition: all 0.2s ease;
+            border-radius: 12px;
+            border: 2px solid var(--border-light);
+            background: var(--white);
+            color: var(--text-main);
+            font-size: 16px;
+            font-weight: 500;
+            padding: 12px;
+            cursor: pointer;
+        }
+        .type-btn.selected-red {
+            background: #FFF5F5;
+            color: #E53E3E;
+            border-color: #E53E3E;
+        }
+        .type-btn.selected-black {
+            background: #F7FAFC;
+            color: #2D3748;
+            border-color: #2D3748;
+        }
+        .type-btn:not(.selected-red):not(.selected-black):hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .type-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .type-dot.red {
+            background: #E53E3E;
+        }
+        .type-dot.black {
+            background: #2D3748;
+        }
+
+        /* ========== 4. 评分星级 ========== */
+        .star-filled { color: var(--accent); }
+        .star-empty { color: var(--border-light); }
+        #rating-text {
+            font-size: 14px;
+            color: var(--text-sub);
+            font-weight: 400;
+        }
+
+        /* ========== 5. 所有输入框 / 文本框 ========== */
+        .input-field {
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--text-main);
+            background: var(--white);
+            transition: all 0.2s ease;
+            outline: none;
+            width: 100%;
+        }
+        .input-field:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+        .input-field::placeholder {
+            color: var(--text-sub);
+            font-size: 16px;
+        }
+
+        /* ========== 6. 匿名发布那一行 ========== */
+        .anonymous-row {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .anonymous-row label {
+            font-size: 14px;
+            color: var(--text-sub);
+            font-weight: 400;
+        }
+        .anonymous-check {
+            accent-color: var(--primary);
+            width: 18px;
+            height: 18px;
+        }
+
+        /* ========== 7. 保存修改按钮 ========== */
+        .save-btn {
+            background: var(--primary);
+            color: var(--white);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+        .save-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* ========== 表单标签 ========== */
+        .form-label {
+            display: block;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+        .required-mark {
+            color: var(--black-red);
+        }
+
+        /* ========== 辅助文字 ========== */
+        .hint-text {
+            font-size: 14px;
+            color: var(--text-sub);
+            font-weight: 400;
+        }
+        .center-hint {
+            font-size: 14px;
+            color: var(--text-sub);
+            text-align: center;
+        }
+    </style>
+<base target="_blank">
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="form-card p-8">
+        <!-- 1. 顶部「编辑模式」栏 -->
+        <div class="edit-header">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="edit-badge">✏️ 编辑模式</span>
+                    <span class="edit-subtitle">修改帖子内容</span>
+                </div>
+                <a href="profile.html" class="cancel-link">取消返回</a>
+            </div>
+            <div class="meta-info">
+                <span id="post-meta">加载中...</span>
+            </div>
+        </div>
+
+        <form onsubmit="handleEditSubmit(event)" class="space-y-5">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="form-label">
+                        标准化店铺名称 <span class="required-mark">*</span>
+                    </label>
+                    <input type="text" id="post-shop" required placeholder="例如：麦当劳（荔园店）" 
+                        class="input-field">
+                </div>
+                <div>
+                    <label class="form-label">
+                        红黑榜属性 <span class="required-mark">*</span>
+                    </label>
+                    <input type="hidden" id="post-type" value="RED">
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" onclick="selectType('RED')" id="btn-red" class="type-btn selected-red flex items-center justify-center gap-2">
+                            <span class="type-dot red"></span><span>红榜</span>
+                        </button>
+                        <button type="button" onclick="selectType('BLACK')" id="btn-black" class="type-btn flex items-center justify-center gap-2">
+                            <span class="type-dot black"></span><span>黑榜</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="form-label">
+                        评分星级 <span class="required-mark">*</span>
+                    </label>
+                    <input type="hidden" id="post-rating" value="5">
+                    <div class="flex items-center space-x-1" id="star-container" onmouseleave="resetStarHover()">
+                        <button type="button" onclick="setRating(1)" onmouseenter="hoverStar(1)" class="text-2xl focus:outline-none transition-colors">★</button>
+                        <button type="button" onclick="setRating(2)" onmouseenter="hoverStar(2)" class="text-2xl focus:outline-none transition-colors">★</button>
+                        <button type="button" onclick="setRating(3)" onmouseenter="hoverStar(3)" class="text-2xl focus:outline-none transition-colors">★</button>
+                        <button type="button" onclick="setRating(4)" onmouseenter="hoverStar(4)" class="text-2xl focus:outline-none transition-colors">★</button>
+                        <button type="button" onclick="setRating(5)" onmouseenter="hoverStar(5)" class="text-2xl focus:outline-none transition-colors">★</button>
+                        <span id="rating-text" class="ml-3">5星 极力安利</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">分类标签</label>
+                    <input type="text" id="post-tags" placeholder="美食、性价比、服务差" 
+                        class="input-field">
+                    <p class="hint-text mt-1">请用中文顿号隔开</p>
+                </div>
+            </div>
+
+            <div>
+                <label class="form-label">
+                    帖子标题 <span class="required-mark">*</span>
+                </label>
+                <input type="text" id="post-title" required placeholder="一句话概括你的核心体验..." 
+                    class="input-field">
+            </div>
+
+            <div>
+                <label class="form-label">
+                    详细经历描述 <span class="required-mark">*</span>
+                </label>
+                <textarea id="post-content" required rows="4" placeholder="请真实详细地写下你在该店的消费体验..." 
+                    class="input-field resize-none"></textarea>
+            </div>
+
+            <!-- 6. 匿名发布那一行 -->
+            <div class="anonymous-row flex items-center space-x-3">
+                <input type="checkbox" id="post-anonymous" class="anonymous-check rounded border-gray-300">
+                <label for="post-anonymous">
+                    我要匿名发布（勾选后将隐藏你的姓名学号）
+                </label>
+            </div>
+
+            <!-- 7. 保存修改按钮 -->
+            <button type="submit" class="save-btn">
+                保存修改
+            </button>
+            <p class="center-hint">修改后将更新至新加坡云端</p>
+        </form>
+    </div>
+
+    <script src="./api.js"></script>
+    <script>
+        // 【以下所有 JS 功能代码完全未动，与原始文件一致】
+        let currentPostId = null;
+        let originalCreatedAt = null;
+
+        function getPostIdFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('id');
+        }
+
+        async function loadPostData() {
+            const postId = getPostIdFromUrl();
+            if (!postId) {
+                alert('无效的帖子ID');
+                window.location.href = 'profile.html';
+                return;
+            }
+            currentPostId = parseInt(postId);
+            try {
+                const { data: { user } } = await window.supabaseClient.auth.getUser();
+                if (!user) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                const { data: post, error } = await window.supabaseClient
+                    .from('posts')
+                    .select('*')
+                    .eq('id', currentPostId)
+                    .eq('user_id', user.id)
+                    .eq('is_deleted', false)
+                    .single();
+                if (error || !post) {
+                    alert('帖子不存在或无权编辑');
+                    window.location.href = 'profile.html';
+                    return;
+                }
+                originalCreatedAt = post.created_at;
+                const dateStr = new Date(post.created_at).toLocaleDateString();
+                document.getElementById('post-meta').innerHTML = 
+                    '📅 原帖发布于 ' + dateStr + ' · 🏪 ' + post.shop_name;
+                document.getElementById('post-shop').value = post.shop_name;
+                document.getElementById('post-title').value = post.title;
+                document.getElementById('post-content').value = post.content;
+                document.getElementById('post-tags').value = (post.tags || []).join('、');
+                document.getElementById('post-anonymous').checked = post.is_anonymous;
+                selectType(post.type);
+                setRating(post.rating);
+            } catch (err) {
+                console.error('加载帖子失败:', err);
+                alert('加载帖子失败: ' + err.message);
+                window.location.href = 'profile.html';
+            }
+        }
+
+        function selectType(type) {
+            document.getElementById('post-type').value = type;
+            const redBtn = document.getElementById('btn-red');
+            const blackBtn = document.getElementById('btn-black');
+            if (type === 'RED') {
+                redBtn.classList.add('selected-red');
+                redBtn.classList.remove('selected-black');
+                blackBtn.classList.remove('selected-red', 'selected-black');
+            } else {
+                blackBtn.classList.add('selected-black');
+                blackBtn.classList.remove('selected-red');
+                redBtn.classList.remove('selected-red', 'selected-black');
+            }
+        }
+
+        const ratingLabels = {
+            1: '1星 恶劣至极',
+            2: '2星 体验较差',
+            3: '3星 水平一般',
+            4: '4星 值得一试',
+            5: '5星 极力安利'
+        };
+        let currentRating = 5;
+
+        function setRating(rating) {
+            currentRating = rating;
+            document.getElementById('post-rating').value = rating;
+            updateStars(rating);
+            document.getElementById('rating-text').textContent = ratingLabels[rating];
+        }
+
+        function hoverStar(rating) {
+            updateStars(rating);
+            document.getElementById('rating-text').textContent = ratingLabels[rating];
+        }
+
+        function resetStarHover() {
+            updateStars(currentRating);
+            document.getElementById('rating-text').textContent = ratingLabels[currentRating];
+        }
+
+        function updateStars(rating) {
+            const stars = document.getElementById('star-container').querySelectorAll('button');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('star-filled');
+                    star.classList.remove('star-empty');
+                } else {
+                    star.classList.add('star-empty');
+                    star.classList.remove('star-filled');
+                }
+            });
+        }
+
+        async function handleEditSubmit(e) {
+            e.preventDefault();
+            if (!currentPostId) {
+                alert('帖子ID无效');
+                return;
+            }
+            const tagsInput = document.getElementById('post-tags').value.trim();
+            const updateData = {
+                shop_name: document.getElementById('post-shop').value.trim(),
+                type: document.getElementById('post-type').value,
+                rating: parseInt(document.getElementById('post-rating').value),
+                title: document.getElementById('post-title').value.trim(),
+                content: document.getElementById('post-content').value.trim(),
+                tags: tagsInput ? tagsInput.split('、').map(t => t.trim()) : [],
+                is_anonymous: document.getElementById('post-anonymous').checked
+            };
+            try {
+                await updatePost(currentPostId, updateData);
+                alert('✅ 帖子修改成功！');
+                window.location.href = 'profile.html';
+            } catch (err) {
+                alert('修改失败：' + err.message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadPostData);
+    </script>
+</body>
+</html>
