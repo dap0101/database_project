@@ -826,6 +826,123 @@ async function updatePost(postId, updateData) {
   }
 }
 
+// ============================================================
+// 功能 7: 获取店铺评分排行榜（平均分 TOP 10）
+// ============================================================
+
+/**
+ * 获取平均分最高的前10家店铺
+ * 
+ * 直接从 shop_rating_stats 视图查询，按 avg_rating 降序排列
+ * 
+ * @returns {Promise<Object>} 排行榜数据
+ *   {
+ *     data: Array<<{
+ *       shop_name: string,
+ *       avg_rating: number,
+ *       total_reviews: number
+ *     }>,
+ *     meta: { fetched_at: string }
+ *   }
+ */
+async function fetchTopShops(limit = 10) {
+  try {
+    const { data, error } = await window.supabaseClient
+      .from('shop_rating_stats')
+      .select('shop_name, avg_rating, total_reviews')
+      .order('avg_rating', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+
+    return {
+      data: data || [],
+      meta: {
+        fetched_at: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    console.error('[fetchTopShops] 查询失败:', error);
+    throw wrapError(error, 'fetchTopShops');
+  }
+}
+
+// ============================================================
+// 功能 8: 获取店铺标签词云数据（按红黑榜分组）
+// ============================================================
+
+/**
+ * 获取指定店铺的标签分布，按红黑榜分组统计
+ * 
+ * @param {string} shopName - 店铺名称
+ * @returns {Promise<Object>} 标签数据
+ *   {
+ *     red_tags: Array<{tag: string, count: number}>,
+ *     black_tags: Array<{tag: string, count: number}>,
+ *     meta: { fetched_at: string }
+ *   }
+ */
+async function fetchShopTags(shopName) {
+  if (!shopName || typeof shopName !== 'string') {
+    throw new Error('[fetchShopTags] 店铺名称参数无效');
+  }
+
+  const normalizedShopName = shopName.trim();
+  if (normalizedShopName.length === 0) {
+    throw new Error('[fetchShopTags] 店铺名称不能为空');
+  }
+
+  try {
+    // 查询该店铺所有帖子的标签和类型
+    const { data: posts, error } = await window.supabaseClient
+      .from('posts')
+      .select('type, tags')
+      .eq('shop_name', normalizedShopName)
+      .eq('is_deleted', false);
+
+    if (error) throw error;
+
+    // 统计标签频率
+    const redTagMap = new Map();
+    const blackTagMap = new Map();
+
+    for (const post of (posts || [])) {
+      const targetMap = post.type === 'RED' ? redTagMap : blackTagMap;
+      for (const tag of (post.tags || [])) {
+        if (tag && tag.trim()) {
+          const trimmed = tag.trim();
+          targetMap.set(trimmed, (targetMap.get(trimmed) || 0) + 1);
+        }
+      }
+    }
+
+    // 转换为数组并按频次排序
+    const red_tags = Array.from(redTagMap.entries())
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 15);
+
+    const black_tags = Array.from(blackTagMap.entries())
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 15);
+
+    return {
+      red_tags,
+      black_tags,
+      meta: {
+        fetched_at: new Date().toISOString()
+      }
+    };
+
+  } catch (error) {
+    console.error('[fetchShopTags] 查询失败:', error);
+    throw wrapError(error, 'fetchShopTags');
+  }
+}
+
+window.fetchShopTags = fetchShopTags;
+window.fetchTopShops = fetchTopShops;
 window.fetchShopStats = fetchShopStats;
 window.fetchShopPosts = fetchShopPosts;
 window.createPost = createPost;
